@@ -1,0 +1,94 @@
+2218a2219,2253
+> /*
+>  ** Switch the database role
+>  */
+> static int
+> msPostGISSetRole(PGconn *pgconn, const char *strRoleName)
+> {
+>   static char *strSQLTemplate = "SET ROLE \"%s\"";
+>   char *sql;
+>   int len;
+>   int result = MS_SUCCESS;
+>     
+>   PGresult *pgresult = NULL;
+>     
+>   if (!pgconn) {
+>     msSetError(MS_QUERYERR, "No open connection.", "msPostGISSetRole()");
+>     return MS_FAILURE;
+>   }
+>     
+>   len = strlen(strSQLTemplate) + strlen(strRoleName) + 1;
+>   sql = msSmallMalloc(len);
+>   snprintf(sql, len, strSQLTemplate, strRoleName);
+>         
+>   pgresult = PQexec(pgconn, sql);
+>   if ( !pgresult || PQresultStatus(pgresult) != PGRES_COMMAND_OK) {
+>     msSetError(MS_QUERYERR, "Error executing SQL: %s", "msPostGISSetRole()", sql);
+>     result = MS_FAILURE;
+>   }
+>     
+>   if (pgresult) {
+>     PQclear(pgresult);
+>   }        
+>   free(sql);
+>     
+>   return result;
+> }
+2220c2255,2263
+< #endif /* USE_POSTGIS */
+---
+> /*
+> ** Reset the database role
+> */
+> static int
+> msPostGISResetRole(PGconn *pgconn)
+> {
+>   const char *sql = "RESET ROLE";
+>   int result = MS_SUCCESS;
+>   PGresult *pgresult = NULL;
+2221a2265,2282
+>   if (!pgconn) {
+>     msSetError(MS_QUERYERR, "No open connection.", "msPostGISResetRole()");
+>     return MS_FAILURE;
+>   }
+>   
+>   pgresult = PQexec(pgconn, sql);
+>   if ( !pgresult || PQresultStatus(pgresult) != PGRES_COMMAND_OK) {
+>     msSetError(MS_QUERYERR, "Error executing SQL: %s", "msPostGISResetRole()", sql);
+>     result = MS_FAILURE;
+>   }
+>     
+>   if (pgresult) {
+>     PQclear(pgresult);
+>   }        
+>     
+>   return result;
+> }
+> #endif /* USE_POSTGIS */
+2233c2294,2295
+<   const char* force2d_processing;
+---
+>   const char *setrole_processing;
+>   const char *force2d_processing;
+2351a2414,2434
+> 
+>   setrole_processing = msLayerGetProcessingKey( layer, "SETROLE" );
+>   if(setrole_processing) {
+>     if (layer->debug) {
+>       msDebug("msPostGISLayerOpen: set role to: %s.\n", setrole_processing);
+>     }
+>     if (msPostGISSetRole(layerinfo->pgconn, setrole_processing) == MS_FAILURE) {
+>       msConnPoolRelease(layer, layerinfo->pgconn);
+>       free(layerinfo);
+>       return MS_FAILURE;
+>     }
+>   } else {
+>     if (layer->debug) {
+>       msDebug("msPostGISLayerOpen: reset role.\n");
+>     }
+>     if (msPostGISResetRole(layerinfo->pgconn) == MS_FAILURE) {
+>       msConnPoolRelease(layer, layerinfo->pgconn);
+>       free(layerinfo);
+>       return MS_FAILURE;
+>     }
+>   }
