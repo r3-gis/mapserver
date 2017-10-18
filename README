@@ -1,3 +1,14 @@
+----------
+ROLE PATCH
+----------
+
+   
+This patch add the ability to use SET ROLE of PostgreSQL databsae
+to limit data result.
+
+
+
+
 -------
 Summary
 -------
